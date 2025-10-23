@@ -1,0 +1,45 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+*.egg
+*.egg-info/
+dist/
+build/
+*.log
+
+# Virtual Environment
+venv/
+env/
+ENV/
+.venv
+
+# Temp Results (generated files)
+temp_results/
+*.tmp
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+.DS_Store
+
+# Environment variables
+.env
+.env.local
+.env.production
+
+# OS
+Thumbs.db
+*.bak
+
+# Compressed files (deployment packages)
+*.zip
+*.tar.gz
+*.tar
+
+# Don't ignore model file (needed for deployment)
+!best.pt

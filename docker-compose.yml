@@ -1,0 +1,48 @@
+version: '3.8'
+
+services:
+  captcha-api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      platforms:
+        - linux/arm64
+    container_name: captcha-solver-api-arm
+    platform: linux/arm64
+    ports:
+      - "8000:8000"
+    volumes:
+      # Mount temp results directory
+      - ./temp_results:/app/temp_results
+      # Mount model for easy updates
+      - ./best.pt:/app/best.pt
+    environment:
+      # API Keys - GANTI DENGAN KEY ANDA!
+      - API_KEYS=["your-secure-key-1", "your-secure-key-2"]
+      - MODEL_PATH=/app/best.pt
+      - TEMP_RESULTS_DIR=/app/temp_results
+      # ARM optimization
+      - OMP_NUM_THREADS=4
+      - OPENBLAS_NUM_THREADS=4
+    restart: unless-stopped
+    # Resource limits for ARM (adjust based on your system)
+    deploy:
+      resources:
+        limits:
+          cpus: '2.0'
+          memory: 2G
+        reservations:
+          cpus: '1.0'
+          memory: 1G
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/api/v1/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    networks:
+      - captcha-network
+
+networks:
+  captcha-network:
+    driver: bridge
