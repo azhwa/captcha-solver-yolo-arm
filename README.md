@@ -1,145 +1,99 @@
-# Captcha Solver API - ARM64 Version
+# YOLO Captcha Solver - ARM64
 
-FastAPI-based REST API untuk deteksi captcha menggunakan YOLOv8, **optimized untuk ARM64 processors**.
+Captcha detection API using YOLOv8, optimized for ARM64 VPS (Oracle Cloud, AWS Graviton, etc).
 
-## 🎯 ARM64 Compatible Platforms
+## Prerequisites
 
-✅ **Cloud VPS ARM:**
-- AWS Graviton (EC2 t4g, a1 instances)
-- Oracle Cloud ARM (Ampere A1)
-- Azure ARM-based VMs
-- Google Cloud Tau T2A
-
-✅ **Single Board Computers:**
-- Raspberry Pi 4 (4GB+ RAM recommended)
-- Raspberry Pi 5
-- NVIDIA Jetson Nano/Xavier
-- Rock Pi 4
-
-✅ **Development:**
-- Apple Silicon (M1, M2, M3 Mac)
-- ARM-based Windows laptops
-
-## 🚀 Quick Start
-
-### Requirements
-- ARM64 processor
 - Docker & Docker Compose
-- 2GB+ RAM (4GB recommended)
-- Port 8000 available
+- ARM64 VPS
+- YOLOv8 model file `best.pt`
 
-### Deploy
+## Quick Start
 
 ```bash
-# Clone atau upload project ke ARM64 machine
+# 1. Clone repository
+git clone <your-repo>
 cd captcha-solver-yolo-arm
 
-# Build & Start
-docker-compose up -d --build
+# 2. Setup environment
+cp .env.example .env
+nano .env  # Edit API_KEYS
 
-# Check logs
-docker-compose logs -f
-
-# Test
-curl http://localhost:8000/api/v1/health
+# 3. Run
+docker-compose up -d
 ```
 
-## 📡 API Endpoints
-
-Same as x86 version:
+## Testing
 
 ### Health Check
-```
-GET /api/v1/health
+```bash
+curl -H "X-API-Key: yourkey1" http://localhost:8000/api/v1/health
+
 ```
 
 ### Detect Captcha
-```
-POST /api/v1/detect
-Headers: X-API-Key: your-api-key
-Form Data:
-  - file: image file
-  - include_visual: boolean (default: true)
-  - save_file: boolean (default: false)
-```
-
-### Example
 ```bash
-curl -X POST http://localhost:8000/api/v1/detect \
-  -H "X-API-Key: your-api-key" \
-  -F "file=@captcha.png" \
-  -F "save_file=true"
+curl -X POST "http://localhost:8000/api/v1/detect?include_visual=true&save_file=false" \
+  -H "X-API-Key: yourkey1" \
+  -F "file=@/path/to/image.png"
 ```
 
-## ⚡ ARM64 Optimizations
-
-This version includes:
-- ✅ OpenBLAS for faster matrix operations
-- ✅ Multi-threading optimization (OMP_NUM_THREADS=4)
-- ✅ Memory-efficient dependencies
-- ✅ Platform-specific base image
-- ✅ Reduced resource limits
-
-## 🔧 Configuration
-
-Edit `docker-compose.yml`:
-
-```yaml
-environment:
-  - API_KEYS=["your-secure-key"]
-  
-deploy:
-  resources:
-    limits:
-      cpus: '2.0'    # Adjust based on your CPU
-      memory: 2G     # Adjust based on your RAM
+**Response:**
+```json
+{
+  "boxes": [
+    {
+      "xyxy": [100.5, 200.3, 300.8, 400.2],
+      "confidence": 0.95,
+      "class": 0
+    }
+  ],
+  "visualization": "base64_encoded_png..."
+}
 ```
 
-## 📊 Performance Notes
+## API Endpoints
 
-**Expected performance on ARM64:**
-- Build time: 10-15 minutes (first time)
-- Inference time: 50-150ms per image (depends on CPU)
-- Memory usage: ~1.5GB
+| Method | Endpoint | Description | Auth |
+|--------|----------|-------------|------|
+| POST | `/api/v1/detect` | Detect objects in image | API Key |
+| GET | `/api/v1/health` | Health check | API Key |
 
-**Recommended specs:**
-- 2+ CPU cores
-- 2GB+ RAM
-- 10GB+ storage
+### Parameters `/detect`
+- `file`: Image file (multipart/form-data)
+- `include_visual`: Return base64 visualization (default: true)
+- `save_file`: Save result to temp folder (default: false)
 
-## 🐛 Troubleshooting
+## Configuration
 
-### Build fails on ARM64
+Edit `.env` file:
+
+```env
+# API Keys (JSON array)
+API_KEYS=["key1", "key2", "key3"]
+
+# ARM64 CPU threads (adjust based on VPS cores)
+OMP_NUM_THREADS=4
+OPENBLAS_NUM_THREADS=4
+```
+
+**Resource Limits** (edit in `docker-compose.yml`):
+- CPU: 1-2 cores
+- Memory: 1-2 GB
+
+## Logs
+
 ```bash
-# Clean and rebuild
-docker-compose down -v
-docker system prune -a
-docker-compose build --no-cache
+# View logs
+docker-compose logs -f
+
+# Stop service
+docker-compose down
 ```
 
-### Out of memory
-```bash
-# Reduce resource limits in docker-compose.yml
-limits:
-  memory: 1G
-```
+## Notes
 
-### Slow inference
-```bash
-# Increase thread count
-environment:
-  - OMP_NUM_THREADS=8  # Match your CPU cores
-```
-
-## 📚 Documentation
-
-- Full deployment guide: `ARM64_GUIDE.txt`
-- API docs: `http://localhost:8000/docs`
-
-## 🔐 Security
-
-Change API_KEYS in docker-compose.yml before deploying!
-
-## 📝 License
-
-Private Project
+- YOLOv8 model must exist in root folder as `best.pt`
+- Default port: `8000`
+- Visualizations saved to `./temp_results/` (if `save_file=true`)
+- Health check: `http://localhost:8000/api/v1/health`

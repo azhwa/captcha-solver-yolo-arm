@@ -1,13 +1,15 @@
-# Dockerfile for ARM64 platforms
+# Dockerfile for ARM64 platforms - Debian Bookworm (Stable)
+# Use this if you encounter package compatibility issues with the default Dockerfile
 # Compatible with: ARM64 VPS, AWS Graviton, Oracle ARM, Raspberry Pi 4/5, Apple Silicon M1/M2
 
-# Use Python 3.11 slim with ARM64 support
-FROM --platform=linux/arm64 python:3.11-slim
+# Use Python 3.11 slim on Debian Bookworm (stable)
+FROM --platform=linux/arm64 python:3.11-slim-bookworm
 
 # Set working directory
 WORKDIR /app
 
 # Install system dependencies for OpenCV and ARM optimization
+# Bookworm still uses libgl1-mesa-glx (more compatible)
 RUN apt-get update && apt-get install -y \
     libgl1-mesa-glx \
     libglib2.0-0 \

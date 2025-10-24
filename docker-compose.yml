@@ -1,4 +1,5 @@
-version: '3.8'
+# Docker Compose for ARM64 using Debian Bookworm (Stable)
+# Use this if default docker-compose.yml has package issues
 
 services:
   captcha-api:
@@ -12,20 +13,15 @@ services:
     ports:
       - "8000:8000"
     volumes:
-      # Mount temp results directory
       - ./temp_results:/app/temp_results
-      # Mount model for easy updates
       - ./best.pt:/app/best.pt
     environment:
-      # API Keys - GANTI DENGAN KEY ANDA!
-      - API_KEYS=["your-secure-key-1", "your-secure-key-2"]
+      - API_KEYS=${API_KEYS}
       - MODEL_PATH=/app/best.pt
       - TEMP_RESULTS_DIR=/app/temp_results
-      # ARM optimization
       - OMP_NUM_THREADS=4
       - OPENBLAS_NUM_THREADS=4
     restart: unless-stopped
-    # Resource limits for ARM (adjust based on your system)
     deploy:
       resources:
         limits:
@@ -41,8 +37,8 @@ services:
       retries: 3
       start_period: 40s
     networks:
-      - captcha-network
+      - baota_net
 
 networks:
-  captcha-network:
-    driver: bridge
+  baota_net:
+    external: true
