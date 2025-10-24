@@ -12,7 +12,7 @@ Captcha detection API using YOLOv8, optimized for ARM64 VPS (Oracle Cloud, AWS G
 
 ```bash
 # 1. Clone repository
-git clone <your-repo>
+git clone https://github.com/azhwa/captcha-solver-yolo-arm.git
 cd captcha-solver-yolo-arm
 
 # 2. Setup environment
