@@ -14,8 +14,8 @@ database/
 *.db
 *.sqlite
 
-# Models (mounted as volume)
-models/
+# Models folder in root (mounted as volume, not Python code)
+/models/
 
 # Temp files
 temp_results/
