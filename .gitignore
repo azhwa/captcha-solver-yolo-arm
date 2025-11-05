@@ -4,42 +4,60 @@ __pycache__/
 *$py.class
 *.so
 .Python
-*.egg
-*.egg-info/
-dist/
-build/
-*.log
-
-# Virtual Environment
-venv/
 env/
+venv/
 ENV/
-.venv
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
 
-# Temp Results (generated files)
+# Database
+database/
+*.db
+*.sqlite
+*.sqlite3
+
+# Models (keep best.pt for initial setup)
+models/
+*.pt
+!best.pt
+
+# Temp
 temp_results/
 *.tmp
+
+# Logs
+*.log
 
 # IDE
 .vscode/
 .idea/
 *.swp
 *.swo
-.DS_Store
-
-# Environment variables
-.env
-.env.local
-.env.production
+*~
 
 # OS
+.DS_Store
 Thumbs.db
-*.bak
 
-# Compressed files (deployment packages)
-*.zip
-*.tar.gz
-*.tar
+# Docker
+.dockerignore
 
-# Don't ignore model file (needed for deployment)
-!best.pt
+# Environment (keep .env for configuration)
+# .env is now needed for docker-compose variables
+
+# Secrets
+*.pem
+*.key

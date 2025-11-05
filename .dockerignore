@@ -4,23 +4,27 @@ __pycache__/
 *$py.class
 *.so
 .Python
-*.egg-info/
-dist/
-build/
-
-# Virtual environments
-venv/
 env/
+venv/
 ENV/
+*.egg-info/
 
-# Temp and cache
+# Database
+database/
+*.db
+*.sqlite
+
+# Models (mounted as volume)
+models/
+
+# Temp files
 temp_results/
-*.log
 *.tmp
 
 # Git
 .git/
 .gitignore
+.gitattributes
 
 # IDE
 .vscode/
@@ -28,15 +32,27 @@ temp_results/
 *.swp
 *.swo
 
+# Documentation
+*.md
+README*
+CHANGELOG*
+
+# Docker
+.dockerignore
+Dockerfile*
+docker-compose*.yml
+
+# Environment
+.env
+.env.*
+
+# Logs
+*.log
+
 # OS
 .DS_Store
 Thumbs.db
 
-# Docker
-Dockerfile
-docker-compose*.yml
-.dockerignore
-
-# Other
-captcha_solver/
-*.md
+# Build artifacts
+dist/
+build/

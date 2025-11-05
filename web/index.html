@@ -1,0 +1,346 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Captcha Solver Dashboard</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js" defer></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        [x-cloak] { display: none !important; }
+    </style>
+</head>
+<body class="bg-gray-50" x-data="app()" x-init="init()">
+    
+    <!-- Login Screen -->
+    <div x-show="!isAuthenticated" x-cloak class="min-h-screen flex items-center justify-center">
+        <div class="bg-white p-8 rounded-lg shadow-md w-96">
+            <h1 class="text-2xl font-bold mb-6 text-center">Captcha Solver Admin</h1>
+            <form @submit.prevent="login()">
+                <div class="mb-4">
+                    <label class="block text-gray-700 text-sm font-bold mb-2">Username</label>
+                    <input type="text" x-model="loginForm.username" 
+                           class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700" 
+                           required>
+                </div>
+                <div class="mb-6">
+                    <label class="block text-gray-700 text-sm font-bold mb-2">Password</label>
+                    <input type="password" x-model="loginForm.password" 
+                           class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700" 
+                           required>
+                </div>
+                <div x-show="loginError" x-text="loginError" class="mb-4 text-red-500 text-sm"></div>
+                <button type="submit" class="w-full bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded">
+                    Login
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Dashboard -->
+    <div x-show="isAuthenticated" x-cloak class="min-h-screen">
+        <!-- Navigation -->
+        <nav class="bg-white shadow-sm">
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                <div class="flex justify-between h-16">
+                    <div class="flex">
+                        <div class="flex-shrink-0 flex items-center">
+                            <h1 class="text-xl font-bold">Captcha Solver Dashboard</h1>
+                        </div>
+                    </div>
+                    <div class="flex items-center">
+                        <span class="text-gray-700 mr-4">Welcome, admin</span>
+                        <button @click="logout()" class="text-red-500 hover:text-red-700">
+                            <i class="fas fa-sign-out-alt"></i> Logout
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </nav>
+
+        <!-- Tabs -->
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-6">
+            <div class="border-b border-gray-200">
+                <nav class="-mb-px flex space-x-8">
+                    <button @click="currentTab = 'dashboard'" 
+                            :class="currentTab === 'dashboard' ? 'border-blue-500 text-blue-600' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'"
+                            class="whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm">
+                        <i class="fas fa-chart-line"></i> Dashboard
+                    </button>
+                    <button @click="currentTab = 'apikeys'" 
+                            :class="currentTab === 'apikeys' ? 'border-blue-500 text-blue-600' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'"
+                            class="whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm">
+                        <i class="fas fa-key"></i> API Keys
+                    </button>
+                    <button @click="currentTab = 'models'" 
+                            :class="currentTab === 'models' ? 'border-blue-500 text-blue-600' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'"
+                            class="whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm">
+                        <i class="fas fa-robot"></i> Models
+                    </button>
+                    <button @click="currentTab = 'test'" 
+                            :class="currentTab === 'test' ? 'border-blue-500 text-blue-600' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'"
+                            class="whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm">
+                        <i class="fas fa-flask"></i> Test
+                    </button>
+                </nav>
+            </div>
+
+            <!-- Dashboard Tab -->
+            <div x-show="currentTab === 'dashboard'" class="mt-6">
+                <div x-show="stats.expiring_keys_count > 0" class="bg-yellow-50 border-l-4 border-yellow-400 p-4 mb-6">
+                    <div class="flex">
+                        <div class="flex-shrink-0">
+                            <i class="fas fa-exclamation-triangle text-yellow-400"></i>
+                        </div>
+                        <div class="ml-3">
+                            <p class="text-sm text-yellow-700">
+                                <span x-text="stats.expiring_keys_count"></span> API key(s) expiring soon!
+                                <button @click="currentTab = 'apikeys'" class="underline ml-2">View</button>
+                            </p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-6">
+                    <div class="bg-white p-6 rounded-lg shadow">
+                        <div class="text-gray-500 text-sm">Requests Today</div>
+                        <div class="text-3xl font-bold mt-2" x-text="stats.total_requests_today"></div>
+                    </div>
+                    <div class="bg-white p-6 rounded-lg shadow">
+                        <div class="text-gray-500 text-sm">Success Rate</div>
+                        <div class="text-3xl font-bold mt-2" x-text="stats.success_rate + '%'"></div>
+                    </div>
+                    <div class="bg-white p-6 rounded-lg shadow">
+                        <div class="text-gray-500 text-sm">Avg Response</div>
+                        <div class="text-3xl font-bold mt-2" x-text="stats.avg_response_time_ms + 'ms'"></div>
+                    </div>
+                    <div class="bg-white p-6 rounded-lg shadow">
+                        <div class="text-gray-500 text-sm">Active Keys</div>
+                        <div class="text-3xl font-bold mt-2" x-text="stats.active_keys_count + '/' + stats.total_keys_count"></div>
+                    </div>
+                </div>
+
+                <div class="bg-white p-6 rounded-lg shadow">
+                    <h2 class="text-lg font-bold mb-4">Current Model</h2>
+                    <div x-show="stats.current_model">
+                        <div class="grid grid-cols-2 gap-4">
+                            <div>
+                                <span class="text-gray-600">Filename:</span>
+                                <span class="font-semibold ml-2" x-text="stats.current_model?.filename"></span>
+                            </div>
+                            <div>
+                                <span class="text-gray-600">Size:</span>
+                                <span class="font-semibold ml-2" x-text="stats.current_model?.file_size_mb + ' MB'"></span>
+                            </div>
+                        </div>
+                    </div>
+                    <div x-show="!stats.current_model" class="text-gray-500">No active model</div>
+                </div>
+            </div>
+
+            <!-- API Keys Tab -->
+            <div x-show="currentTab === 'apikeys'" class="mt-6">
+                <div class="flex justify-between items-center mb-4">
+                    <h2 class="text-2xl font-bold">API Keys</h2>
+                    <button @click="showAddKeyModal = true" class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded">
+                        <i class="fas fa-plus"></i> Add New Key
+                    </button>
+                </div>
+
+                <div class="bg-white rounded-lg shadow overflow-hidden">
+                    <table class="min-w-full divide-y divide-gray-200">
+                        <thead class="bg-gray-50">
+                            <tr>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Key</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Expiration</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Requests</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody class="bg-white divide-y divide-gray-200">
+                            <template x-for="key in apiKeys" :key="key.id">
+                                <tr>
+                                    <td class="px-6 py-4 whitespace-nowrap" x-text="key.name"></td>
+                                    <td class="px-6 py-4 whitespace-nowrap">
+                                        <code class="bg-gray-100 px-2 py-1 rounded text-sm" x-text="key.key_value_preview"></code>
+                                        <button @click="copyKey(key.id)" class="ml-2 text-blue-500 hover:text-blue-700">
+                                            <i class="fas fa-copy"></i>
+                                        </button>
+                                    </td>
+                                    <td class="px-6 py-4 whitespace-nowrap">
+                                        <span x-show="key.expiration_status === 'never'" class="text-green-600">
+                                            <i class="fas fa-infinity"></i> Never
+                                        </span>
+                                        <span x-show="key.expiration_status === 'active'" class="text-green-600" 
+                                              x-text="key.days_until_expiry + ' days'"></span>
+                                        <span x-show="key.expiration_status === 'expiring'" class="text-yellow-600 font-bold" 
+                                              x-text="key.days_until_expiry + ' days!'"></span>
+                                        <span x-show="key.expiration_status === 'expired'" class="text-red-600">
+                                            <i class="fas fa-times-circle"></i> Expired
+                                        </span>
+                                    </td>
+                                    <td class="px-6 py-4 whitespace-nowrap" x-text="key.request_count"></td>
+                                    <td class="px-6 py-4 whitespace-nowrap">
+                                        <span x-show="key.is_active" class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">
+                                            Active
+                                        </span>
+                                        <span x-show="!key.is_active" class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-red-100 text-red-800">
+                                            Inactive
+                                        </span>
+                                    </td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm">
+                                        <button @click="toggleKey(key.id)" class="text-blue-500 hover:text-blue-700 mr-3">
+                                            <i :class="key.is_active ? 'fas fa-pause' : 'fas fa-play'"></i>
+                                        </button>
+                                        <button @click="renewKey(key.id)" class="text-green-500 hover:text-green-700 mr-3">
+                                            <i class="fas fa-redo"></i>
+                                        </button>
+                                        <button @click="deleteKey(key.id)" class="text-red-500 hover:text-red-700">
+                                            <i class="fas fa-trash"></i>
+                                        </button>
+                                    </td>
+                                </tr>
+                            </template>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Models Tab -->
+            <div x-show="currentTab === 'models'" class="mt-6">
+                <div class="flex justify-between items-center mb-4">
+                    <h2 class="text-2xl font-bold">Models</h2>
+                    <button @click="document.getElementById('modelUpload').click()" class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded">
+                        <i class="fas fa-upload"></i> Upload Model
+                    </button>
+                    <input type="file" id="modelUpload" accept=".pt" @change="uploadModel($event)" class="hidden">
+                </div>
+
+                <div class="bg-white rounded-lg shadow overflow-hidden">
+                    <table class="min-w-full divide-y divide-gray-200">
+                        <thead class="bg-gray-50">
+                            <tr>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Filename</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Size (MB)</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Uploaded</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody class="bg-white divide-y divide-gray-200">
+                            <template x-for="model in models" :key="model.id">
+                                <tr>
+                                    <td class="px-6 py-4 whitespace-nowrap" x-text="model.filename"></td>
+                                    <td class="px-6 py-4 whitespace-nowrap" x-text="model.file_size_mb"></td>
+                                    <td class="px-6 py-4 whitespace-nowrap" x-text="new Date(model.uploaded_at).toLocaleDateString()"></td>
+                                    <td class="px-6 py-4 whitespace-nowrap">
+                                        <span x-show="model.is_active" class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">
+                                            Active
+                                        </span>
+                                        <span x-show="!model.is_active" class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-gray-100 text-gray-800">
+                                            Inactive
+                                        </span>
+                                    </td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm">
+                                        <button x-show="!model.is_active" @click="activateModel(model.id)" 
+                                                class="text-green-500 hover:text-green-700 mr-3">
+                                            <i class="fas fa-check-circle"></i> Activate
+                                        </button>
+                                        <button x-show="!model.is_active" @click="deleteModel(model.id)" 
+                                                class="text-red-500 hover:text-red-700">
+                                            <i class="fas fa-trash"></i>
+                                        </button>
+                                    </td>
+                                </tr>
+                            </template>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Test Tab -->
+            <div x-show="currentTab === 'test'" class="mt-6">
+                <div class="bg-white p-6 rounded-lg shadow">
+                    <h2 class="text-2xl font-bold mb-4">Test Detection</h2>
+                    <div class="mb-4">
+                        <label class="block text-gray-700 text-sm font-bold mb-2">Select API Key</label>
+                        <select x-model="testForm.apiKeyId" class="shadow border rounded w-full py-2 px-3 text-gray-700">
+                            <option value="">-- Select API Key --</option>
+                            <template x-for="key in apiKeys.filter(k => k.is_active)" :key="key.id">
+                                <option :value="key.id" x-text="key.name"></option>
+                            </template>
+                        </select>
+                    </div>
+                    <div class="mb-4">
+                        <label class="block text-gray-700 text-sm font-bold mb-2">Upload Image</label>
+                        <input type="file" @change="testForm.file = $event.target.files[0]" accept="image/*" 
+                               class="shadow border rounded w-full py-2 px-3 text-gray-700">
+                    </div>
+                    <button @click="testDetection()" class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded">
+                        <i class="fas fa-play"></i> Run Detection
+                    </button>
+
+                    <div x-show="testResult" class="mt-6">
+                        <h3 class="text-lg font-bold mb-2">Result</h3>
+                        <div x-show="testResult.visualization" class="mb-4">
+                            <img :src="'data:image/png;base64,' + testResult.visualization" class="max-w-full border rounded">
+                        </div>
+                        <pre class="bg-gray-100 p-4 rounded overflow-x-auto" x-text="JSON.stringify(testResult.boxes, null, 2)"></pre>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Add Key Modal -->
+    <div x-show="showAddKeyModal" x-cloak class="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
+        <div class="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white">
+            <h3 class="text-lg font-bold mb-4">Create New API Key</h3>
+            <form @submit.prevent="createApiKey()">
+                <div class="mb-4">
+                    <label class="block text-gray-700 text-sm font-bold mb-2">Key Name *</label>
+                    <input type="text" x-model="newKey.name" required
+                           class="shadow border rounded w-full py-2 px-3 text-gray-700">
+                </div>
+                <div class="mb-4">
+                    <label class="block text-gray-700 text-sm font-bold mb-2">Expiration Type</label>
+                    <select x-model="newKey.expiration_type" class="shadow border rounded w-full py-2 px-3 text-gray-700">
+                        <option value="never">Never Expire</option>
+                        <option value="duration">Duration</option>
+                        <option value="date">Custom Date</option>
+                    </select>
+                </div>
+                <div x-show="newKey.expiration_type === 'duration'" class="mb-4">
+                    <label class="block text-gray-700 text-sm font-bold mb-2">Duration (days)</label>
+                    <input type="number" x-model="newKey.duration_days" min="1"
+                           class="shadow border rounded w-full py-2 px-3 text-gray-700">
+                </div>
+                <div x-show="newKey.expiration_type === 'date'" class="mb-4">
+                    <label class="block text-gray-700 text-sm font-bold mb-2">Expiration Date</label>
+                    <input type="datetime-local" x-model="newKey.expires_at"
+                           class="shadow border rounded w-full py-2 px-3 text-gray-700">
+                </div>
+                <div class="mb-4">
+                    <label class="block text-gray-700 text-sm font-bold mb-2">Daily Limit (0 = unlimited)</label>
+                    <input type="number" x-model="newKey.daily_limit" min="0"
+                           class="shadow border rounded w-full py-2 px-3 text-gray-700">
+                </div>
+                <div class="flex justify-end">
+                    <button type="button" @click="showAddKeyModal = false" 
+                            class="bg-gray-500 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded mr-2">
+                        Cancel
+                    </button>
+                    <button type="submit" class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded">
+                        Create
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>

@@ -1,52 +1,60 @@
-# Dockerfile for ARM64 platforms - Debian Bookworm (Stable)
-# Use this if you encounter package compatibility issues with the default Dockerfile
-# Compatible with: ARM64 VPS, AWS Graviton, Oracle ARM, Raspberry Pi 4/5, Apple Silicon M1/M2
+# Multi-stage Dockerfile for ARM64 platforms - Optimized for Ampere VPS
+# Stage 1: Builder - Compile dependencies
+FROM python:3.11-slim-bookworm AS builder
 
-# Use Python 3.11 slim on Debian Bookworm (stable)
-FROM --platform=linux/arm64 python:3.11-slim-bookworm
+WORKDIR /build
 
-# Set working directory
+# Install build dependencies for compiling Python packages
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    gcc \
+    g++ \
+    libffi-dev \
+    libssl-dev \
+    && rm -rf /var/lib/apt/lists/*
+
+# Copy requirements and create virtual environment
+COPY requirements.txt .
+RUN python -m venv /build/venv && \
+    /build/venv/bin/pip install --no-cache-dir --upgrade pip && \
+    /build/venv/bin/pip install --no-cache-dir -r requirements.txt
+
+# Stage 2: Runtime - Minimal image with only runtime dependencies
+FROM python:3.11-slim-bookworm
+
 WORKDIR /app
 
-# Install system dependencies for OpenCV and ARM optimization
-# Bookworm still uses libgl1-mesa-glx (more compatible)
-RUN apt-get update && apt-get install -y \
+# Install only runtime dependencies
+RUN apt-get update && apt-get install -y --no-install-recommends \
     libgl1-mesa-glx \
     libglib2.0-0 \
     libgomp1 \
     libopenblas-dev \
-    liblapack-dev \
     curl \
     && rm -rf /var/lib/apt/lists/*
 
-# Copy requirements file
-COPY requirements.txt .
+# Copy Python virtual environment from builder
+COPY --from=builder /build/venv /app/venv
 
-# Install Python dependencies with ARM64 optimizations
-RUN pip install --no-cache-dir --upgrade pip && \
-    pip install --no-cache-dir -r requirements.txt
-
-# Copy the model file
-COPY best.pt /app/best.pt
-
-# Copy the API code
+# Copy application code
 COPY api /app/api
 
-# Create temp results directory
-RUN mkdir -p /app/temp_results
+# Create necessary directories with proper permissions
+RUN mkdir -p /app/temp_results /app/models /app/database && \
+    chmod -R 755 /app/temp_results /app/models /app/database
 
 # Expose port
 EXPOSE 8000
 
-# Set environment variables
-ENV PYTHONUNBUFFERED=1
-ENV MODEL_PATH=/app/best.pt
-ENV OMP_NUM_THREADS=4
-ENV OPENBLAS_NUM_THREADS=4
+# Environment variables
+ENV PYTHONUNBUFFERED=1 \
+    PATH="/app/venv/bin:$PATH" \
+    MODEL_PATH=/app/best.pt \
+    OMP_NUM_THREADS=4 \
+    OPENBLAS_NUM_THREADS=4
 
-# Health check
-HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
-    CMD curl -f http://localhost:8000/api/v1/health || exit 1
+# Healthcheck (increased start period for model loading)
+HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
+    CMD curl -f http://localhost:8000/ || exit 1
 
-# Run the application
-CMD ["python", "-m", "uvicorn", "api.app.main:app", "--host", "0.0.0.0", "--port", "8000"]
+# Run application
+CMD ["/app/venv/bin/python", "-m", "uvicorn", "api.app.main:app", "--host", "0.0.0.0", "--port", "8000"]

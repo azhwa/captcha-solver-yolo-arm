@@ -10,11 +10,28 @@ from pathlib import Path
 
 # Lazy-loaded model
 _model = None
+_model_load_error = None
 
 def get_model():
-    global _model
-    if _model is None:
-        _model = YOLO(settings.MODEL_PATH)
+    """Get YOLO model. Returns None if model file doesn't exist or failed to load."""
+    global _model, _model_load_error
+    
+    if _model is None and _model_load_error is None:
+        try:
+            # Check if model file exists
+            if not os.path.exists(settings.MODEL_PATH):
+                _model_load_error = f"Model file not found: {settings.MODEL_PATH}"
+                print(f"WARNING: {_model_load_error}")
+                return None
+            
+            # Load model
+            _model = YOLO(settings.MODEL_PATH)
+            print(f"Model loaded successfully from {settings.MODEL_PATH}")
+        except Exception as e:
+            _model_load_error = str(e)
+            print(f"ERROR loading model: {_model_load_error}")
+            return None
+    
     return _model
 
 def _encode_visualization(vis_ndarray: np.ndarray) -> str:
@@ -59,6 +76,11 @@ def detect_image_bytes(image_bytes: bytes, include_visual: bool = True, save_fil
         'saved_path': file_path_or_none (only present if save_file=True)
     }
     """
+    # Check if model is available
+    model = get_model()
+    if model is None:
+        raise RuntimeError(f"Model not available. {_model_load_error or 'Please upload a model first.'}")
+    
     # write to temp file because ultralytics model expects a path or array; path is simplest
     tmp_path = None
     try:
@@ -66,7 +88,6 @@ def detect_image_bytes(image_bytes: bytes, include_visual: bool = True, save_fil
             tmp.write(image_bytes)
             tmp_path = tmp.name
 
-        model = get_model()
         results = model(tmp_path)
 
         if len(results) == 0:
