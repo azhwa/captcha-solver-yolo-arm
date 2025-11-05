@@ -21,7 +21,12 @@ Captcha detection API using YOLOv8 dengan Web Dashboard untuk management, optimi
 
 ### 1. Clone & Setup
 ```bash
+<<<<<<< HEAD
 git clone <your-repo>
+=======
+# 1. Clone repository
+git clone https://github.com/azhwa/captcha-solver-yolo-arm.git
+>>>>>>> 46fdea3432a18d98ac4b79f954ea273c8e4a5f58
 cd captcha-solver-yolo-arm
 
 # Create directories
