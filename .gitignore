@@ -29,8 +29,8 @@ database/
 *.sqlite
 *.sqlite3
 
-# Models (keep best.pt for initial setup)
-models/
+# Models folder in root (uploaded models, not Python code)
+/models/
 *.pt
 !best.pt
 

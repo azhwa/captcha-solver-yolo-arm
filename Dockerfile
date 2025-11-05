@@ -38,6 +38,16 @@ COPY --from=builder /build/venv /app/venv
 # Copy application code
 COPY api /app/api
 
+# Verify models folder structure (debug + validation)
+RUN echo "=== Verifying API folder structure ===" && \
+    ls -la /app/api/app/ && \
+    echo "" && \
+    echo "=== Checking models folder ===" && \
+    ls -la /app/api/app/models/ && \
+    test -f /app/api/app/models/__init__.py && \
+    echo "✓ models/__init__.py exists" || \
+    (echo "✗ ERROR: models/__init__.py is MISSING!" && exit 1)
+
 # Create necessary directories with proper permissions
 RUN mkdir -p /app/temp_results /app/models /app/database && \
     chmod -R 755 /app/temp_results /app/models /app/database

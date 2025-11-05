@@ -1,6 +1,4 @@
 # Docker Compose for ARM64 Ampere VPS - Production Ready
-version: '3.8'
-
 services:
   captcha-api:
     build:
@@ -17,6 +15,8 @@ services:
       - ./best.pt:/app/best.pt:ro  # Read-only for security
       - ./models:/app/models
       - ./database:/app/database
+    env_file:
+      - .env
     environment:
       - MODEL_PATH=/app/best.pt
       - TEMP_RESULTS_DIR=/app/temp_results
@@ -38,7 +38,7 @@ services:
       retries: 5
       start_period: 120s
     networks:
-      - captcha-network
+      - baota_net
 
   web-dashboard:
     image: nginx:alpine
@@ -54,9 +54,8 @@ services:
         condition: service_healthy
     restart: unless-stopped
     networks:
-      - captcha-network
-
-networks:
-  captcha-network:
-    driver: bridge
-    name: captcha-network
+      - baota_net
+    
+networks: 
+  baota_net: 
+    external: true
