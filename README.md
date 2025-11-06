@@ -43,13 +43,7 @@ MEMORY_LIMIT=2G
 OMP_NUM_THREADS=4
 ```
 
-**3. Place Model**
-```bash
-# Copy your trained model to root
-cp /path/to/your/model.pt ./best.pt
-```
-
-**4. Deploy**
+**3. Deploy**
 ```bash
 # Build and start
 docker-compose up -d
@@ -58,12 +52,12 @@ docker-compose up -d
 docker-compose logs -f
 ```
 
-**5. Access**
+**4. Access & Upload Model**
 - **Dashboard**: http://your-server:3000
 - **API**: http://your-server:8000
 - **API Docs**: http://your-server:8000/docs
 
-Login with credentials from `.env`.
+Login with credentials from `.env`, then upload your YOLOv8 model (`.pt` file) via the **Models** tab in the dashboard.
 
 ## Manual Run (Without Docker)
 
@@ -290,8 +284,8 @@ chmod +x monitor.sh
 
 **Container fails to start:**
 - Check logs: `docker-compose logs captcha-api`
-- Verify `best.pt` exists in root folder
 - Check resource limits in `.env`
+- Ensure database directory is writable
 
 **Login fails:**
 - Verify credentials in `.env` match your input

@@ -19,7 +19,8 @@ class Settings(BaseSettings):
     
     # YOLOv8 Model - Auto-detect production vs development
     # Default path, will be checked at runtime (doesn't need to exist at startup)
-    MODEL_PATH: str = "/app/best.pt" if os.path.exists("/app") else "../best.pt"
+    # Models should be uploaded via admin dashboard to /app/models directory
+    MODEL_PATH: str = "/app/models/active_model.pt" if os.path.exists("/app") else "./models/active_model.pt"
     
     # Temporary files
     TEMP_RESULTS_DIR: str = "/app/temp_results" if os.path.exists("/app") else "./temp_results"

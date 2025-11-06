@@ -12,13 +12,11 @@ services:
       - "8000:8000"
     volumes:
       - ./temp_results:/app/temp_results
-      - ./best.pt:/app/best.pt:ro  # Read-only for security
       - ./models:/app/models
       - ./database:/app/database
     env_file:
       - .env
     environment:
-      - MODEL_PATH=/app/best.pt
       - TEMP_RESULTS_DIR=/app/temp_results
       - OMP_NUM_THREADS=${OMP_NUM_THREADS:-4}
       - OPENBLAS_NUM_THREADS=${OPENBLAS_NUM_THREADS:-4}

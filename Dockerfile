@@ -58,7 +58,6 @@ EXPOSE 8000
 # Environment variables
 ENV PYTHONUNBUFFERED=1 \
     PATH="/app/venv/bin:$PATH" \
-    MODEL_PATH=/app/best.pt \
     OMP_NUM_THREADS=4 \
     OPENBLAS_NUM_THREADS=4
 

@@ -20,16 +20,22 @@ def get_model():
         try:
             # Check if model file exists
             if not os.path.exists(settings.MODEL_PATH):
-                _model_load_error = f"Model file not found: {settings.MODEL_PATH}"
-                print(f"WARNING: {_model_load_error}")
+                _model_load_error = f"Model file not found at {settings.MODEL_PATH}. Please upload a model via the admin dashboard."
+                print(f"⚠ WARNING: {_model_load_error}")
+                return None
+            
+            # Check if path is a directory (common mounting issue)
+            if os.path.isdir(settings.MODEL_PATH):
+                _model_load_error = f"Model path is a directory, not a file: {settings.MODEL_PATH}. Please upload a model via the admin dashboard."
+                print(f"⚠ WARNING: {_model_load_error}")
                 return None
             
             # Load model
             _model = YOLO(settings.MODEL_PATH)
-            print(f"Model loaded successfully from {settings.MODEL_PATH}")
+            print(f"✓ Model loaded successfully from {settings.MODEL_PATH}")
         except Exception as e:
             _model_load_error = str(e)
-            print(f"ERROR loading model: {_model_load_error}")
+            print(f"✗ ERROR loading model: {_model_load_error}")
             return None
     
     return _model

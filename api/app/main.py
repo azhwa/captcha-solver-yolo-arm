@@ -14,19 +14,36 @@ async def lifespan(app: FastAPI):
     # Startup: Create tables
     Base.metadata.create_all(bind=engine)
     
-    # Create default admin if not exists
     db = next(get_db())
-    admin_exists = db.query(AdminUser).first()
-    if not admin_exists:
-        default_admin = AdminUser(
-            username=settings.ADMIN_USERNAME,
-            hashed_password=get_password_hash(settings.ADMIN_PASSWORD),
-            email=settings.ADMIN_EMAIL
-        )
-        db.add(default_admin)
-        db.commit()
-        print(f"Default admin created: username={settings.ADMIN_USERNAME}, email={settings.ADMIN_EMAIL}")
-    db.close()
+    try:
+        # Clean orphaned request logs (migration fix for NOT NULL constraint)
+        from sqlalchemy import text
+        result = db.execute(text(
+            "DELETE FROM request_logs WHERE api_key_id IS NULL OR "
+            "api_key_id NOT IN (SELECT id FROM api_keys)"
+        ))
+        deleted_count = result.rowcount
+        if deleted_count > 0:
+            db.commit()
+            print(f"✓ Database migration: Cleaned {deleted_count} orphaned request logs")
+        
+        # Create default admin if not exists
+        admin_exists = db.query(AdminUser).first()
+        if not admin_exists:
+            default_admin = AdminUser(
+                username=settings.ADMIN_USERNAME,
+                hashed_password=get_password_hash(settings.ADMIN_PASSWORD),
+                email=settings.ADMIN_EMAIL
+            )
+            db.add(default_admin)
+            db.commit()
+            print(f"✓ Default admin created: username={settings.ADMIN_USERNAME}, email={settings.ADMIN_EMAIL}")
+        else:
+            print(f"✓ Admin user exists: {admin_exists.username}")
+    except Exception as e:
+        print(f"⚠ Startup warning: {e}")
+    finally:
+        db.close()
     
     yield
     # Shutdown
