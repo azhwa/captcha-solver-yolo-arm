@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Clear Cache</title>
+</head>
+<body>
+    <h1>Clear Browser Cache</h1>
+    <button onclick="clearAll()">Clear All Data & Reload</button>
+    
+    <script>
+        function clearAll() {
+            // Clear localStorage
+            localStorage.clear();
+            
+            // Show confirmation
+            alert('Cache cleared! Redirecting to dashboard...');
+            
+            // Redirect to main page
+            window.location.href = 'index.html';
+        }
+        
+        // Auto-clear on load
+        console.log('Current localStorage:');
+        console.log('admin_token:', localStorage.getItem('admin_token'));
+        console.log('admin_username:', localStorage.getItem('admin_username'));
+    </script>
+</body>
+</html>

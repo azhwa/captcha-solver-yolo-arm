@@ -6,6 +6,7 @@ function app() {
     return {
         isAuthenticated: false,
         token: null,
+        username: '',
         currentTab: 'dashboard',
         loginForm: { username: '', password: '' },
         loginError: '',
@@ -29,8 +30,10 @@ function app() {
         async init() {
             // Check if token exists in localStorage
             const savedToken = localStorage.getItem('admin_token');
+            const savedUsername = localStorage.getItem('admin_username');
             if (savedToken) {
                 this.token = savedToken;
+                this.username = savedUsername;
                 this.isAuthenticated = true;
                 await this.loadDashboard();
             }
@@ -51,7 +54,9 @@ function app() {
 
                 const data = await response.json();
                 this.token = data.access_token;
+                this.username = this.loginForm.username;
                 localStorage.setItem('admin_token', this.token);
+                localStorage.setItem('admin_username', this.username);
                 this.isAuthenticated = true;
                 this.loginError = '';
                 await this.loadDashboard();
@@ -63,7 +68,9 @@ function app() {
         logout() {
             this.isAuthenticated = false;
             this.token = null;
+            this.username = '';
             localStorage.removeItem('admin_token');
+            localStorage.removeItem('admin_username');
             this.loginForm = { username: '', password: '' };
         },
 

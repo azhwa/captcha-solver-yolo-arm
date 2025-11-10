@@ -13,8 +13,12 @@ SECRET_KEY = "your-secret-key-change-this-in-production"  # TODO: Move to env
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 60 * 24  # 24 hours
 
-# Password hashing - using pbkdf2_sha256 (no bcrypt dependency needed)
-pwd_context = CryptContext(schemes=["pbkdf2_sha256"], deprecated="auto")
+# Password hashing - support both pbkdf2_sha256 (preferred) and bcrypt (legacy)
+# bcrypt marked as deprecated for automatic migration on next login
+pwd_context = CryptContext(
+    schemes=["pbkdf2_sha256", "bcrypt"],
+    deprecated=["bcrypt"]
+)
 
 # HTTP Bearer for JWT
 security = HTTPBearer()

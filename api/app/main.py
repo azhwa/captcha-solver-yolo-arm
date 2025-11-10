@@ -27,19 +27,58 @@ async def lifespan(app: FastAPI):
             db.commit()
             print(f"✓ Database migration: Cleaned {deleted_count} orphaned request logs")
         
-        # Create default admin if not exists
-        admin_exists = db.query(AdminUser).first()
-        if not admin_exists:
-            default_admin = AdminUser(
+        # Sync admin user with .env credentials on every startup
+        # Always update FIRST admin (single admin mode)
+        admin = db.query(AdminUser).order_by(AdminUser.id).first()
+        
+        if not admin:
+            # Create first admin from .env
+            admin = AdminUser(
                 username=settings.ADMIN_USERNAME,
                 hashed_password=get_password_hash(settings.ADMIN_PASSWORD),
-                email=settings.ADMIN_EMAIL
+                email=settings.ADMIN_EMAIL if settings.ADMIN_EMAIL else None
             )
-            db.add(default_admin)
+            db.add(admin)
             db.commit()
-            print(f"✓ Default admin created: username={settings.ADMIN_USERNAME}, email={settings.ADMIN_EMAIL}")
+            db.refresh(admin)
+            print(f"✓ Admin created from .env: {settings.ADMIN_USERNAME}")
         else:
-            print(f"✓ Admin user exists: {admin_exists.username}")
+            # Update existing FIRST admin with .env credentials
+            updated = False
+            
+            # Update username if changed
+            if admin.username != settings.ADMIN_USERNAME:
+                admin.username = settings.ADMIN_USERNAME
+                updated = True
+                print(f"✓ Admin username updated: {settings.ADMIN_USERNAME}")
+            
+            # Update password if changed
+            from .auth import verify_password
+            try:
+                if not verify_password(settings.ADMIN_PASSWORD, admin.hashed_password):
+                    admin.hashed_password = get_password_hash(settings.ADMIN_PASSWORD)
+                    updated = True
+                    print(f"✓ Admin password updated from .env")
+            except:
+                admin.hashed_password = get_password_hash(settings.ADMIN_PASSWORD)
+                updated = True
+                print(f"✓ Admin password force-updated from .env")
+            
+            # Update email if changed (optional)
+            new_email = settings.ADMIN_EMAIL if settings.ADMIN_EMAIL else None
+            if admin.email != new_email:
+                admin.email = new_email
+                updated = True
+                if new_email:
+                    print(f"✓ Admin email updated: {new_email}")
+                else:
+                    print(f"✓ Admin email cleared (not configured)")
+            
+            if updated:
+                db.commit()
+                db.refresh(admin)
+            else:
+                print(f"✓ Admin synced: {admin.username}")
     except Exception as e:
         print(f"⚠ Startup warning: {e}")
     finally:

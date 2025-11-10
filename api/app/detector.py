@@ -13,26 +13,45 @@ _model = None
 _model_load_error = None
 
 def get_model():
-    """Get YOLO model. Returns None if model file doesn't exist or failed to load."""
+    """Get YOLO model from database active model."""
     global _model, _model_load_error
     
     if _model is None and _model_load_error is None:
         try:
+            # Import here to avoid circular dependency
+            from .database import SessionLocal
+            from .crud.models import get_active_model
+            
+            # Get active model from database
+            db = SessionLocal()
+            try:
+                active_model = get_active_model(db)
+                if not active_model:
+                    _model_load_error = "No active model found. Please upload and activate a model via the admin dashboard."
+                    print(f"⚠ WARNING: {_model_load_error}")
+                    return None
+                
+                model_path = active_model.file_path
+                print(f"📦 Using active model from database: {model_path}")
+            finally:
+                db.close()
+            
             # Check if model file exists
-            if not os.path.exists(settings.MODEL_PATH):
-                _model_load_error = f"Model file not found at {settings.MODEL_PATH}. Please upload a model via the admin dashboard."
+            if not os.path.exists(model_path):
+                _model_load_error = f"Model file not found at {model_path}. Please re-upload the model."
                 print(f"⚠ WARNING: {_model_load_error}")
                 return None
             
-            # Check if path is a directory (common mounting issue)
-            if os.path.isdir(settings.MODEL_PATH):
-                _model_load_error = f"Model path is a directory, not a file: {settings.MODEL_PATH}. Please upload a model via the admin dashboard."
+            # Check if path is directory
+            if os.path.isdir(model_path):
+                _model_load_error = f"Model path is a directory: {model_path}."
                 print(f"⚠ WARNING: {_model_load_error}")
                 return None
             
             # Load model
-            _model = YOLO(settings.MODEL_PATH)
-            print(f"✓ Model loaded successfully from {settings.MODEL_PATH}")
+            _model = YOLO(model_path)
+            print(f"✓ Model loaded successfully: {model_path}")
+            
         except Exception as e:
             _model_load_error = str(e)
             print(f"✗ ERROR loading model: {_model_load_error}")
@@ -54,7 +73,7 @@ def _save_visualization(vis_ndarray: np.ndarray, original_filename: str = None) 
     temp_dir.mkdir(parents=True, exist_ok=True)
     
     # Generate filename with timestamp
-    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S_%f")
+    timestamp = datetime.utcnow().strftime("%Y%m%d_%H%M%S_%f")
     if original_filename:
         base_name = Path(original_filename).stem
         filename = f"{base_name}_{timestamp}_detected.png"

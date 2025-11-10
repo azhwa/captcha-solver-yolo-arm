@@ -10,7 +10,6 @@ from ..models.schemas import ModelFileResponse, ModelFileUpload
 from ..models.db_models import AdminUser, ModelFile
 from ..auth import get_current_admin
 from ..crud import models as crud
-from ..detector import get_model, _model
 
 router = APIRouter(prefix="/admin/models", tags=["Admin - Models"])
 
@@ -34,29 +33,68 @@ async def upload_model(
     current_admin: AdminUser = Depends(get_current_admin)
 ):
     """Upload a new YOLO model file"""
-    # Validate file extension
-    if not file.filename.endswith('.pt'):
-        raise HTTPException(status_code=400, detail="Only .pt model files are allowed")
-    
-    # Save file
-    file_path = MODELS_DIR / file.filename
-    with open(file_path, "wb") as buffer:
-        shutil.copyfileobj(file.file, buffer)
-    
-    # Get file size
-    file_size_mb = os.path.getsize(file_path) / (1024 * 1024)
-    
-    # Create database record
-    model_file = crud.create_model_file(
-        db,
-        filename=file.filename,
-        file_path=str(file_path),
-        file_size_mb=round(file_size_mb, 2),
-        uploaded_by=current_admin.username,
-        description=description
-    )
-    
-    return model_file
+    try:
+        # Validate file extension
+        if not file.filename.endswith('.pt'):
+            raise HTTPException(status_code=400, detail="Only .pt model files are allowed")
+        
+        # Check if file already exists and auto-rename if needed
+        original_filename = file.filename
+        file_path = MODELS_DIR / file.filename
+        
+        # If file exists, add timestamp to make it unique
+        if file_path.exists():
+            from datetime import datetime
+            timestamp = datetime.utcnow().strftime("%Y%m%d_%H%M%S")
+            name_parts = file.filename.rsplit('.', 1)
+            file.filename = f"{name_parts[0]}_{timestamp}.{name_parts[1]}"
+            file_path = MODELS_DIR / file.filename
+            print(f"⚠ File exists, renamed to: {file.filename}")
+        
+        # Check if database record with same path exists
+        existing_record = db.query(ModelFile).filter(ModelFile.file_path == str(file_path)).first()
+        if existing_record:
+            # Delete old file if exists
+            if os.path.exists(existing_record.file_path):
+                os.remove(existing_record.file_path)
+            # Delete database record
+            db.delete(existing_record)
+            db.commit()
+            print(f"⚠ Replaced existing model record: {existing_record.filename}")
+        
+        # Save file
+        with open(file_path, "wb") as buffer:
+            shutil.copyfileobj(file.file, buffer)
+        
+        # Get file size
+        file_size_mb = os.path.getsize(file_path) / (1024 * 1024)
+        
+        # Create database record
+        model_file = crud.create_model_file(
+            db,
+            filename=file.filename,
+            file_path=str(file_path),
+            file_size_mb=round(file_size_mb, 2),
+            uploaded_by=current_admin.username,
+            description=description
+        )
+        
+        return model_file
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        # Clean up file if database insert failed
+        if file_path.exists():
+            try:
+                os.remove(file_path)
+            except:
+                pass
+        print(f"✗ Upload error: {type(e).__name__}: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to upload model: {str(e)}"
+        )
 
 @router.patch("/{model_id}/activate", response_model=ModelFileResponse)
 async def activate_model(
@@ -65,19 +103,26 @@ async def activate_model(
     current_admin: AdminUser = Depends(get_current_admin)
 ):
     """Set a model as active"""
-    model = crud.activate_model(db, model_id)
-    if not model:
-        raise HTTPException(status_code=404, detail="Model not found")
-    
-    # Reload model in detector
-    global _model
-    _model = None  # Reset cached model
-    
-    # Update MODEL_PATH in config
-    from ..config import settings
-    settings.MODEL_PATH = model.file_path
-    
-    return model
+    try:
+        model = crud.activate_model(db, model_id)
+        if not model:
+            raise HTTPException(status_code=404, detail="Model not found")
+        
+        # Clear cached model to force reload from database
+        from .. import detector
+        detector._model = None
+        detector._model_load_error = None
+        print(f"✓ Model activated: {model.filename}, cache cleared")
+        
+        return model
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"✗ Error activating model: {type(e).__name__}: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to activate model: {str(e)}"
+        )
 
 @router.delete("/{model_id}", status_code=status.HTTP_204_NO_CONTENT)
 async def delete_model(

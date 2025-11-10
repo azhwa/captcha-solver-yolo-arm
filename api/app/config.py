@@ -9,7 +9,7 @@ class Settings(BaseSettings):
     # Admin Credentials (configurable via .env)
     ADMIN_USERNAME: str = "admin"
     ADMIN_PASSWORD: str = "admin123"
-    ADMIN_EMAIL: str = "admin@example.com"
+    ADMIN_EMAIL: str = ""  # Optional, leave empty if no SMTP configured
     
     # Security
     API_KEYS: List[str] = ["test-key-1", "test-key-2"]
